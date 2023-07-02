@@ -16,298 +16,140 @@ import sys
 sys.path.append("../")
 from q_agent import QAgent
 
-class DeliveryEnvironment(object):
-    def __init__(self,n_stops = 10,max_box = 10,method = "distance", points = None, **kwargs):
+class SamplingPointEnvironment(object):
+    def __init__(self,n_stops = None,max_box = None, method = "distance", points = None, **kwargs):
 
-        print(f"Initialized Delivery Environment with {n_stops} random stops")
-        print(f"Target metric for optimization is {method}")
+        print(f"Initialized Sampling Point Environment with {n_stops} random stops")
 
         # Initialization
 
         # added
         self.points = points
-
-
         self.n_stops = n_stops
-        self.action_space = self.n_stops
-        self.observation_space = self.n_stops
+        self.action_space = self.n_stops # action space is the number of stops
+        self.observation_space = self.n_stops # observation space is the number of stops as well
         self.max_box = max_box
-        self.stops = []
+        self.stops = [] # list of stops that the agent has visited
         self.method = method
 
         # Generate stops
-        self._generate_constraints(**kwargs)
-        self._generate_stops()
-        self._generate_q_values()
-        self.render()
+        self.Generate_Stops()
+        self.Generate_Distance_Matrix()
+        self.Render()
 
         # Initialize first point
-        self.reset()
+        self.Reset()
 
+    # genereate the coordinates of the stops
+    def Generate_Stops(self):
+        xy = np.array(self.points)
+        self.x = xy[:, 0]
+        self.y = xy[:, 1]
 
-    def _generate_constraints(self,box_size = 0.2,traffic_intensity = 5):
-
-        if self.method == "traffic_box":
-
-            x_left = np.random.rand() * (self.max_box) * (1-box_size)
-            y_bottom = np.random.rand() * (self.max_box) * (1-box_size)
-
-            x_right = x_left + np.random.rand() * box_size * self.max_box
-            y_top = y_bottom + np.random.rand() * box_size * self.max_box
-
-            self.box = (x_left,x_right,y_bottom,y_top)
-            self.traffic_intensity = traffic_intensity 
-
-
-
-    def _generate_stops(self):
-
-        if self.method == "traffic_box":
-
-            points = []
-            while len(points) < self.n_stops:
-                x,y = np.random.rand(2)*self.max_box
-                if not self._is_in_box(x,y,self.box):
-                    points.append((x,y))
-
-            xy = np.array(points)
-        
-        # added
-        elif self.points is not None:
-            xy = np.array(self.points)
-
-        else:
-            # Generate geographical coordinates
-            xy = np.random.rand(self.n_stops,2)*self.max_box
-
-        self.x = xy[:,0]
-        self.y = xy[:,1]
-
-
-    def _generate_q_values(self,box_size = 0.2):
-
-        # Generate actual Q Values corresponding to time elapsed between two points
-        if self.method in ["distance","traffic_box"]:
-            xy = np.column_stack([self.x,self.y])
-            self.q_stops = cdist(xy,xy)
-        elif self.method=="time":
-            self.q_stops = np.random.rand(self.n_stops,self.n_stops)*self.max_box
-            np.fill_diagonal(self.q_stops,0)
-        else:
-            raise Exception("Method not recognized")
+    # generate the distance matrix between the stops using the euclidean distance
+    def Generate_Distance_Matrix(self):
+        self.q_stops = np.zeros((self.n_stops, self.n_stops))
+        for i in range(self.n_stops):
+            for j in range(self.n_stops):
+                self.q_stops[i][j] = np.sqrt((self.x[i] - self.x[j])**2 + (self.y[i] - self.y[j])**2)
     
-
-    def render(self,return_img = False):
-        """Visualize the environment state
-        """
-        
-        # can you rotate the image by 90 degrees and flip it?
-        fig = plt.figure(figsize=(7,7))
+    # Drawing the path of the agent
+    def Render(self, return_img=False):
+        fig = plt.figure(figsize=(7, 7))
         ax = fig.add_subplot(111)
         ax.set_title("Delivery Stops")
 
-        # Show stops
-        ax.scatter(self.x,self.y,c = "red",s = 50)
+        # Swap x and y when plotting and invert y (which is plotted on x-axis)
+        ax.scatter(self.y, -self.x, c="red", s=50)
 
-        # Show START
-        if len(self.stops)>0:
-            xy = self._get_xy(initial = True)
-            xytext = xy[0]+0.1,xy[1]-0.05
-            ax.annotate("START",xy=xy,xytext=xytext,weight = "bold")
+        if len(self.stops) > 0:
+            # Swap x and y when getting coordinates and invert y
+            xy = [self.Get_XY(initial=True)[1], -self.Get_XY(initial=True)[0]]
+            xytext = xy[0] - 0.05, xy[1] - 0.1
+            ax.annotate("START", xy=xy, xytext=xytext, weight="bold")
 
-        # Show itinerary
         if len(self.stops) > 1:
-            ax.plot(self.x[self.stops],self.y[self.stops],c = "blue",linewidth=1,linestyle="--")
-            
-            # Annotate END
-            xy = self._get_xy(initial = False)
-            xytext = xy[0]+0.1,xy[1]-0.05
-            ax.annotate("END",xy=xy,xytext=xytext,weight = "bold")
+            # Swap x and y when plotting and invert y
+            ax.plot(self.y[self.stops], -self.x[self.stops], c="blue", linewidth=1, linestyle="--")
+            xy = [self.Get_XY(initial=False)[1], -self.Get_XY(initial=False)[0]]
+            xytext = xy[0] - 0.05, xy[1] - 0.1
+            ax.annotate("END", xy=xy, xytext=xytext, weight="bold")
 
-
-        if hasattr(self,"box"):
-            left,bottom = self.box[0],self.box[2]
-            width = self.box[1] - self.box[0]
-            height = self.box[3] - self.box[2]
-            rect = Rectangle((left,bottom), width, height)
-            collection = PatchCollection([rect],facecolor = "red",alpha = 0.2)
-            ax.add_collection(collection)
-
+        ax.invert_yaxis()
 
         plt.xticks([])
         plt.yticks([])
-        
+
         if return_img:
-            # From https://ndres.me/post/matplotlib-animated-gifs-easily/
             fig.canvas.draw_idle()
             image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
-            image  = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+            image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
             plt.close()
             return image
         else:
             plt.show()
-            
-
-
-
-    def reset(self):
-        """Restart the environment for experience replay
-        Returns the first state
-        """
-
-        # Stops placeholder
+    
+    # Reset the environment by clearing all the stops and selecting a random stop as the first stop
+    def Reset(self):
         self.stops = []
-
-        # Random first stop
-        first_stop = np.random.randint(self.n_stops)
+        first_stop = 0
         self.stops.append(first_stop)
-
         return first_stop
 
-
-    def step(self,destination):
-
-        """Takes an action in a given state
-        Returns:
-            s_next: the next state
-            reward: the reward for such action
-            done: if the simulation is done
-        """
-
-        # Get current state
-        state = self._get_state()
+    # Step function that takes the destination as an input and returns the new state, reward and done
+    def Step(self, destination):
+        state = self.Get_State()
         new_state = destination
-
-        # Get reward for such a move
-        reward = self._get_reward(state,new_state)
-
-        # Append new_state to stops
+        reward = self.Get_Reward(state, new_state)
         self.stops.append(destination)
         done = len(self.stops) == self.n_stops
 
-        return new_state,reward,done
+        return new_state, reward, done
     
-
-    def _get_state(self):
+    # returns the most recently bisited stop's index which is the current state of the environment
+    def Get_State(self):
         return self.stops[-1]
 
-        return self.stops[-1]
 
-
-    def _get_xy(self,initial = False):
-        state = self.stops[0] if initial else self._get_state()
+    def Get_XY(self,initial = False):
+        state = self.stops[0] if initial else self.Get_State()
         x = self.x[state]
         y = self.y[state]
         return x,y
 
-
-    def _get_reward(self,state,new_state):
-        base_reward = self.q_stops[state,new_state]
-
-        if self.method == "distance":
-            return base_reward
-        elif self.method == "time":
-            return base_reward + np.random.randn()
-        elif self.method == "traffic_box":
-
-            return base_reward + np.random.randn()
-        elif self.method == "traffic_box":
-
-            # Additional reward correspond to slowing down in traffic
-            xs,ys = self.x[state],self.y[state]
-            xe,ye = self.x[new_state],self.y[new_state]
-            intersections = self._calculate_box_intersection(xs,xe,ys,ye,self.box)
-            if len(intersections) > 0:
-                i1,i2 = intersections
-                distance_traffic = np.sqrt((i2[1]-i1[1])**2 + (i2[0]-i1[0])**2)
-                additional_reward = distance_traffic * self.traffic_intensity * np.random.rand()
-            else:
-                additional_reward = np.random.rand()
-
-            return base_reward + additional_reward
-
-
-    @staticmethod
-    def _calculate_point(x1,x2,y1,y2,x = None,y = None):
-
-        if y1 == y2:
-            return y1
-        elif x1 == x2:
-            return x1
-        else:
-            a = (y2-y1)/(x2-x1)
-            b = y2 - a * x2
-
-            if x is None:
-                x = (y-b)/a
-                return x
-            elif y is None:
-                y = a*x+b
-                return y
-            else:
-                raise Exception("Provide x or y")
-
-
-    def _is_in_box(self,x,y,box):
-        # Get box coordinates
-        x_left,x_right,y_bottom,y_top = box
-        return x >= x_left and x <= x_right and y >= y_bottom and y <= y_top
-
-
-    def _calculate_box_intersection(self,x1,x2,y1,y2,box):
-
-        # Get box coordinates
-        x_left,x_right,y_bottom,y_top = box
-
-        # Intersections
-        intersections = []
-
-        # Top intersection
-        i_top = self._calculate_point(x1,x2,y1,y2,y=y_top)
-        if i_top > x_left and i_top < x_right:
-            intersections.append((i_top,y_top))
-
-        # Bottom intersection
-        i_bottom = self._calculate_point(x1,x2,y1,y2,y=y_bottom)
-        if i_bottom > x_left and i_bottom < x_right:
-            intersections.append((i_bottom,y_bottom))
-
-        # Left intersection
-        i_left = self._calculate_point(x1,x2,y1,y2,x=x_left)
-        if i_left > y_bottom and i_left < y_top:
-            intersections.append((x_left,i_left))
-
-        # Right intersection
-        i_right = self._calculate_point(x1,x2,y1,y2,x=x_right)
-        if i_right > y_bottom and i_right < y_top:
-            intersections.append((x_right,i_right))
-
-        return intersections
+    # calculate the reward from moving from one stop to another
+    def Get_Reward(self, state, new_state):
+        base_reward = self.q_stops[state, new_state]
+        return base_reward
 
 def run_episode(env,agent,verbose = 1):
 
-    s = env.reset()
-    agent.reset_memory()
+    # Reset the environment
+    s = env.Reset()
 
-    max_step = env.n_stops
+    # Reset the agent memory
+    agent.Reset_Memory()
+
+    # Get the maximum number of stops
+    max_Step = env.n_stops
     
+    # Initialize the episode reward
     episode_reward = 0
 
     # added
-
     total_distance = 0
     
     i = 0
-    while i < max_step:
+    while i < max_Step:
 
         # Remember the states
-        agent.remember_state(s)
+        agent.Remember_State(s)
 
         # Choose an action
         a = agent.act(s)
         
         # Take the action, and get the reward from environment
-        s_next,r,done = env.step(a)
+        s_next,r,done = env.Step(a)
 
         # Tweak the reward
         r = -1 * r
@@ -315,7 +157,7 @@ def run_episode(env,agent,verbose = 1):
         if verbose: print(s_next,r,done)
         
         # Update our knowledge in the Q-table
-        agent.train(s,a,r,s_next)
+        agent.Train(s,a,r,s_next)
         
         # Update the caches
         episode_reward += r
@@ -331,12 +173,16 @@ def run_episode(env,agent,verbose = 1):
             
     return env,agent,episode_reward, total_distance
 
-class DeliveryQAgent(QAgent):
+class SamplingPointQAgent(QAgent):
 
     def __init__(self,*args,**kwargs):
         super().__init__(*args,**kwargs)
-        self.reset_memory()
+        self.Reset_Memory()
 
+    '''
+    Does take into account the current state but also considers the states already visited by the agent.
+    The agent avoids revisiting the states that it has already visited by setting their Q-value to -inf.
+    '''
     def act(self,s):
 
         # Get Q Vector
@@ -352,14 +198,15 @@ class DeliveryQAgent(QAgent):
 
         return a
 
-
-    def remember_state(self,s):
+    # it allows the agent to remember the states that it has visited and therefore avoid visiting them again
+    def Remember_State(self,s):
         self.states_memory.append(s)
 
-    def reset_memory(self):
+    # it allows the agent to forget the states that it has visited and therefore refresh its memory
+    def Reset_Memory(self):
         self.states_memory = []
 
-def run_n_episodes(env,agent,name="training.gif",n_episodes=2000,render_each=100,fps=10):
+def run_n_episodes(env,agent,name="training.gif",n_episodes=2000,Render_each=100,fps=10):
 
     # Store the rewards
     rewards = []
@@ -384,9 +231,9 @@ def run_n_episodes(env,agent,name="training.gif",n_episodes=2000,render_each=100
         print("Minimum total distance over 1000 episodes: ", min_distance*100000)
 
         
-        if i % render_each == 0:
+        if i % Render_each == 0:
             print(agent.Q)
-            img = env.render(return_img = True)
+            img = env.Render(return_img = True)
             imgs.append(img)
 
     # # Show rewards

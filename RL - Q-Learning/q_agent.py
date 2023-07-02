@@ -42,28 +42,41 @@ class QAgent(Agent):
         self.epsilon_decay = epsilon_decay
         self.gamma = gamma
         self.lr = lr
-        self.Q = self.build_model(states_size,actions_size)
+        self.Q = self.Build_Model(states_size,actions_size)
 
 
-    def build_model(self,states_size,actions_size):
+    def Build_Model(self,states_size,actions_size):
         Q = np.zeros([states_size,actions_size])
-
-        print("Q table shape: {}".format(Q.shape))
         return Q
 
+    # introducing the Q-Learning algorithm
+    '''
+    - s: current state
+    - a: current action
+    - r: reward
+    - s_next: next state
+    - lr: learning rate
+    - gamma: discount factor
 
-    def train(self,s,a,r,s_next):
-        self.Q[s,a] = self.Q[s,a] + self.lr * (r + self.gamma*np.max(self.Q[s_next,a]) - self.Q[s,a])
+    This is introduced in the Q-Learning algorithm. It updates the Q-table with the new knowledge as follows the Bellman Equation:
+    Q(s,a) = Q(s,a) + lr * (r + gamma * max(Q(s',a')) - Q(s,a))
+    '''
+    def Train(self,s,a,r,s_next):
+        self.Q[s,a] = self.Q[s,a] + self.lr * (r + self.gamma*np.max(self.Q[s_next,a]) - self.Q[s,a]) # Bellman Equation
 
+        # apply the epsilon decay
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-
+    '''
+    This method decides the next action to take given a state 's'. It uses the epsilon-greedy policy which means that
+    the agent will either choose the action with the highest Q-value or a random action with equal probability.
+    '''
     def act(self,s):
 
         q = self.Q[s,:]
 
-        if np.random.rand() > self.epsilon:
+        if np.random.rand() > self.epsilon: # epsilon-greedy policy
             a = np.argmax(q)
         else:
             a = np.random.randint(self.actions_size)
