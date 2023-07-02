@@ -156,7 +156,7 @@ def run_episode(env,agent,verbose = 1):
         if verbose: print(s_next,r,done)
         
         # Update our knowledge in the Q-table
-        agent.Train(s,a,r,s_next)
+        agent.Update_Q_Table(s,a,r,s_next)
         
         # Update the caches
         episode_reward += r
@@ -185,7 +185,7 @@ class SamplingPointQAgent(QAgent):
     def act(self,s):
 
         # Get Q Vector
-        q = np.copy(self.Q[s,:])
+        q = np.copy(self.q_table[s,:])
 
         # Avoid already visited states
         q[self.states_memory] = -np.inf
@@ -232,7 +232,7 @@ def run_n_episodes(env,agent,name="training.gif",n_episodes=2000,Render_each=100
 
         
         if i % Render_each == 0:
-            print(agent.Q)
+            print(agent.q_table)
             img = env.Render(return_img = True)
             imgs.append(img)
 

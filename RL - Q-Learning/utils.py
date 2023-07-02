@@ -12,7 +12,6 @@ import random
 import numpy as np
 import pylab
 
-
 def plot_average_running_rewards(rewards,save = None):
     average_running_rewards = np.cumsum(rewards)/np.array(range(1,len(rewards)+1))
     figure = plt.figure(figsize = (15,4))
@@ -22,6 +21,3 @@ def plot_average_running_rewards(rewards,save = None):
         plt.show()
     else:
         plt.savefig(save)
-
-
-
