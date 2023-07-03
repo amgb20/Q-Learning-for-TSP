@@ -45,13 +45,31 @@ class QAgent(Agent):
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-    '''
-    This method decides the next action to take given a state 's'. It uses the epsilon-greedy policy which means that
-    the agent will either choose the action with the highest Q-value or a random action with equal probability.
-    '''
-    def act(self,s):
-        q_values = self.q_table[s,:]
-        return np.argmax(q_values) if np.random.rand() > self.epsilon else np.random.randint(self.actions_size)
+    def softmax(self, x):
+        e_x = np.exp(x - np.max(x))  # subtract max(x) for numerical stability
+        return e_x / e_x.sum(axis=0)
+    
+    # act method for a UCB policy
+    def act(self, s, c=2):
+        q_values = self.q_table[s, :]
+        action_counts = self.N_sa[s, :]
+        ucb_values = q_values + c * np.sqrt(np.log(sum(action_counts)) / (action_counts + 1e-5))  # add a small number to avoid division by zero
+        return np.argmax(ucb_values)
+
+    # # act method for a softmax policy
+    # def act(self, s):
+    #     q_values = self.q_table[s, :]
+    #     prob_distribution = self.softmax(q_values)
+    #     return np.random.choice(np.arange(self.actions_size), p=prob_distribution)
+
+    ## act method for an epsilon-greedy policy
+    # '''
+    # This method decides the next action to take given a state 's'. It uses the epsilon-greedy policy which means that
+    # the agent will either choose the action with the highest Q-value or a random action with equal probability.
+    # '''
+    # def act(self,s):
+    #     q_values = self.q_table[s,:]
+    #     return np.argmax(q_values) if np.random.rand() > self.epsilon else np.random.randint(self.actions_size)
     
     def Remember(self, state, action, reward, next_state, done):
         self.memory.save((state, action, reward, next_state, done))
