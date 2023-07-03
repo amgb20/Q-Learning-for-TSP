@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import time
 import imageio
 import sys
+import matplotlib.pyplot as mping
 
 from tqdm import tqdm_notebook
 from q_agent import QAgent
@@ -50,10 +51,17 @@ class SamplingPointEnvironment(object):
                 self.stop_distances[i][j] = np.sqrt((self.x_coordinates[i] - self.x_coordinates[j])**2 + (self.y_coordinates[i] - self.y_coordinates[j])**2)
 
     # Drawing the path of the agent
-    def Render(self, return_img=False):
+    def Render(self, return_img=False, background_image_path=None):
         fig = plt.figure(figsize=(7, 7))
         ax = fig.add_subplot(111)
-        ax.set_title("Delivery Stops")
+        ax.set_title("Sampling Points Stops")
+
+        background_image_path = "../background.png"
+
+        if background_image_path is not None:
+            img = mping.imread(background_image_path)
+            img = np.flipud(img)
+            ax.imshow(img,aspect='auto', extent=[min(self.y_coordinates), max(self.y_coordinates), -min(self.x_coordinates), -max(self.x_coordinates)])
 
         # Swap x and y when plotting and invert y (which is plotted on x-axis)
         ax.scatter(self.y_coordinates, -self.x_coordinates, c="red", s=50)
@@ -138,8 +146,8 @@ def run_episode(env,agent,verbose = 1):
     # added
     total_distance = 0
     
-    i = 0
-    while i < max_Take_Step:
+    step_count = 0
+    while step_count < max_Take_Step:
 
         # Remember the states
         agent.Remember_State(s)
@@ -148,25 +156,26 @@ def run_episode(env,agent,verbose = 1):
         a = agent.act(s)
         
         # Take the action, and get the reward from environment
-        s_next,r,done = env.Take_Step(a)
+        next_state,reward,done = env.Take_Step(a)
 
         # Tweak the reward
-        r = -1 * r
+        reward = -1 * reward
         
-        if verbose: print(s_next,r,done)
+        if verbose: 
+            print(next_state,reward,done)
         
         # Update our knowledge in the Q-table
-        agent.Update_Q_Table(s,a,r,s_next)
+        agent.Update_Q_Table(s,a,reward,next_state)
         
         # Update the caches
-        episode_reward += r
-        s = s_next
+        episode_reward += reward
+        s = next_state
 
         # Add the distance of the taken action
-        total_distance -=r
+        total_distance -=reward
         
         # If the episode is terminated
-        i += 1
+        step_count += 1
         if done:
             break
             
@@ -250,15 +259,15 @@ def run_n_episodes(env,agent,name="training.gif",n_episodes=2000,Render_each=100
 
     # Plot rewards
     axs[0].set_title("Rewards over training")
-    axs[0].plot(rewards)
+    axs[0].plot(np.array(rewards)*1e5)  # Multiply rewards by e5
 
     # Plot total distances
     axs[1].set_title("Total distance over training")
-    axs[1].plot(total_distances)
+    axs[1].plot(np.array(total_distances)*1e5)  # Multiply total_distances by e5
 
     # Plot epsilon values
     axs[2].set_title("Epsilon values over training")
-    axs[2].plot(epsilon_values)
+    axs[2].plot(np.array(epsilon_values)*1e5)  # Multiply epsilon_values by e5
 
     plt.tight_layout()
     plt.show()
