@@ -7,7 +7,7 @@ import sys
 import matplotlib.pyplot as mping
 
 from tqdm import tqdm_notebook
-from q_agent import QAgent
+from q_learning import QAgent
 
 plt.style.use("seaborn-dark")
 sys.path.append("../")
