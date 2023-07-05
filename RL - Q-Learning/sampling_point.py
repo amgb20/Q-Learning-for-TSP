@@ -10,7 +10,9 @@ from tqdm import tqdm_notebook
 from q_learning import QAgent
 
 plt.style.use("seaborn-dark")
+
 sys.path.append("../")
+
 
 class SamplingPointEnvironment(object):
     def __init__(self,stop_count = None,max_limit = None, points = None):
@@ -100,6 +102,9 @@ class SamplingPointEnvironment(object):
         self.visited_stops.append(first_stop)
         return first_stop
 
+    def reset(self):
+        return self.Initialise()
+
     # Take_Step function that takes the destination as an input and returns the new current_state, reward and done
     '''
     This function is called in run_episode taking as an argument the action chosen by the agent.
@@ -124,12 +129,22 @@ class SamplingPointEnvironment(object):
         y = self.y_coordinates[current_state]
         return x,y
 
+    # # r1 = 1/d(ij)
+    # def Calculate_Reward(self, current_state, next_state):
+    #     if self.stop_distances[current_state, next_state] != 0:
+    #         reward_value = 1 / self.stop_distances[current_state, next_state]
+    #     else:
+    #         reward_value = -np.inf
+    #     return reward_value
+
+    # original
     # calculate the reward from moving from one stop to another
     def Calculate_Reward(self, current_state, next_state):
-        reward_value = self.stop_distances[current_state, next_state]
+        reward_value = -self.stop_distances[current_state, next_state]
         return reward_value
 
-def run_episode(env,agent,verbose = 1):
+# original
+def run_episode(env,agent, verbose = 1):
 
     # Initialise the environment
     s = env.Initialise()
@@ -159,18 +174,27 @@ def run_episode(env,agent,verbose = 1):
         next_state,reward,done = env.Take_Step(a)
 
         # Tweak the reward
-        reward = -1 * reward
+        reward = 1 * reward
         
         if verbose: 
             print(next_state,reward,done)
         
-        # Update our knowledge in the Q-table
-        agent.Update_Q_Table(s,a,reward,next_state)
+
+        # # Update our knowledge in the Q-table
+        # agent.Update_Q_Table(s,a,reward,next_state)
+
+        # Update our knowledge in the Double Q-table
+        agent.Update_Double_Q_Table(s,a,reward,next_state)
+
+        # # inverse distance 
+        # # Add the distance of the taken action
+        # total_distance += env.stop_distances[s, a]
         
         # Update the caches
         episode_reward += reward
         s = next_state
 
+        # original
         # Add the distance of the taken action
         total_distance -=reward
         
@@ -181,6 +205,7 @@ def run_episode(env,agent,verbose = 1):
             
     return env,agent,episode_reward, total_distance
 
+# original
 class SamplingPointQAgent(QAgent):
 
     def __init__(self,*args,**kwargs):
@@ -193,8 +218,11 @@ class SamplingPointQAgent(QAgent):
     '''
     def act(self,s):
 
-        # Get Q Vector
-        q = np.copy(self.q_table[s,:])
+        # # Get Q Vector
+        # q = np.copy(self.q_table[s,:])
+
+        # Get Q Vector from average of q_table1 and q_table2
+        q = np.copy((self.q_table1[s,:] + self.q_table2[s,:]) / 2)
 
         # Avoid already visited states
         q[self.states_memory] = -np.inf
@@ -214,7 +242,8 @@ class SamplingPointQAgent(QAgent):
     def Initialise_Memory(self):
         self.states_memory = []
 
-def run_n_episodes(env,agent,name="training.gif",n_episodes=2000,Render_each=100):
+# original
+def run_n_episodes(env,agent, name="training.gif",n_episodes=2000,Render_each=100):
 
     # Store the rewards
     rewards = []
@@ -229,7 +258,7 @@ def run_n_episodes(env,agent,name="training.gif",n_episodes=2000,Render_each=100
     for i in tqdm_notebook(range(n_episodes)):
 
         # Run the episode
-        env,agent,episode_reward, total_distance = run_episode(env,agent,verbose = 0)
+        env,agent,episode_reward, total_distance = run_episode(env,agent, verbose = 0)
         rewards.append(episode_reward)
         total_distances.append(total_distance)
         epsilon_values.append(agent.epsilon)
@@ -238,7 +267,6 @@ def run_n_episodes(env,agent,name="training.gif",n_episodes=2000,Render_each=100
 
         min_distance = min(total_distances)
         print("Minimum total distance over 1000 episodes: ", min_distance*100000)
-
         
         if i % Render_each == 0:
             print(agent.q_table)
