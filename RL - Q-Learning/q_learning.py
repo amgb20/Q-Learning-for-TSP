@@ -35,12 +35,10 @@ class QAgent(Agent):
 
         self.memory = Memory()
 
-    # def Build_Model(self,states_size,actions_size):
-    #     Q = np.zeros([states_size,actions_size])
-    #     return Q
-
     # introducing the Q-Learning algorithm
     '''
+    Q-Learning
+
     - s: current state
     - a: current action
     - r: reward
@@ -69,18 +67,18 @@ class QAgent(Agent):
     '''
     Double Q-Learning
     '''
-    def Update_Double_Q_Table(self, s, a, r, s_next):
-        # With 0.5 probability update the first Q-Table, 
-        # otherwise update the second Q-Table
-        if np.random.rand() < 0.5:
-            a_next = np.argmax(self.q_table1[s_next, :])
-            self.q_table1[s, a] += self.lr * (r + self.gamma * self.q_table2[s_next, a_next] - self.q_table1[s, a])
-        else:
-            a_next = np.argmax(self.q_table2[s_next, :])
-            self.q_table2[s, a] += self.lr * (r + self.gamma * self.q_table1[s_next, a_next] - self.q_table2[s, a])
+    # def Update_Double_Q_Table(self, s, a, r, s_next):
+    #     # With 0.5 probability update the first Q-Table, 
+    #     # otherwise update the second Q-Table
+    #     if np.random.rand() < 0.5:
+    #         a_next = np.argmax(self.q_table1[s_next, :])
+    #         self.q_table1[s, a] += self.lr * (r + self.gamma * self.q_table2[s_next, a_next] - self.q_table1[s, a])
+    #     else:
+    #         a_next = np.argmax(self.q_table2[s_next, :])
+    #         self.q_table2[s, a] += self.lr * (r + self.gamma * self.q_table1[s_next, a_next] - self.q_table2[s, a])
         
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
+    #     if self.epsilon > self.epsilon_min:
+    #         self.epsilon *= self.epsilon_decay
 
     # introducing the SARSA algorithm
 
