@@ -181,10 +181,10 @@ def run_episode(env,agent, verbose = 1):
         
 
         # # Update our knowledge in the Q-table
-        # agent.Update_Q_Table(s,a,reward,next_state)
+        agent.Update_Q_Table(s,a,reward,next_state)
 
         # Update our knowledge in the Double Q-table
-        agent.Update_Double_Q_Table(s,a,reward,next_state)
+        # agent.Update_Double_Q_Table(s,a,reward,next_state)
 
         # # inverse distance 
         # # Add the distance of the taken action
@@ -218,11 +218,11 @@ class SamplingPointQAgent(QAgent):
     '''
     def act(self,s):
 
-        # # Get Q Vector
-        # q = np.copy(self.q_table[s,:])
+        # Get Q Vector
+        q = np.copy(self.q_table[s,:])
 
-        # Get Q Vector from average of q_table1 and q_table2
-        q = np.copy((self.q_table1[s,:] + self.q_table2[s,:]) / 2)
+        # # Get Q Vector from average of q_table1 and q_table2
+        # q = np.copy((self.q_table1[s,:] + self.q_table2[s,:]) / 2)
 
         # Avoid already visited states
         q[self.states_memory] = -np.inf
@@ -265,8 +265,8 @@ def run_n_episodes(env,agent, name="training.gif",n_episodes=2000,Render_each=10
 
         # print('total distance: ', total_distances)
 
-        min_distance = min(total_distances)
-        print("Minimum total distance over 1000 episodes: ", min_distance*100000)
+        min_distance = min(total_distances) * 100000
+        print("Minimum total distance over 1000 episodes: ", min_distance)
         
         if i % Render_each == 0:
             print(agent.q_table)
@@ -303,4 +303,4 @@ def run_n_episodes(env,agent, name="training.gif",n_episodes=2000,Render_each=10
     # Save imgs as gif
     imageio.mimsave(name,imgs,duration=100)
 
-    return env,agent
+    return env,agent, min_distance, elapsed_time

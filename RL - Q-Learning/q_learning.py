@@ -25,7 +25,7 @@ class QAgent(Agent):
         self.lr = lr
         self.q_table = np.zeros([states_size, actions_size]) 
 
-                # Initialize two Q-tables
+        # Initialize two Q-tables
         self.q_table1 = np.zeros([states_size, actions_size])
         self.q_table2 = np.zeros([states_size, actions_size])
 
@@ -57,12 +57,12 @@ class QAgent(Agent):
     #     self.N_sa[s, a] += 1  # increment the number of times we have visited state-action pair (s, a)
     #     self.steps_done += 1  # increment steps
     
-    # # original exponential decay --> best so far
-    # def Update_Q_Table(self, s, a, r, s_next):
-    #     self.q_table[s,a] += self.lr * (r + self.gamma * np.max(self.q_table[s_next,a]) - self.q_table[s,a]) # Bellman Equation
-    #     if self.epsilon > self.epsilon_min:
-    #         self.epsilon *= self.epsilon_decay
-    #     self.N_sa[s, a] += 1  # increment the number of times we have visited state-action pair (s, a)
+    # original exponential decay --> best so far
+    def Update_Q_Table(self, s, a, r, s_next):
+        self.q_table[s,a] += self.lr * (r + self.gamma * np.max(self.q_table[s_next,a]) - self.q_table[s,a]) # Bellman Equation
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
+        self.N_sa[s, a] += 1  # increment the number of times we have visited state-action pair (s, a)
     
     '''
     Double Q-Learning
