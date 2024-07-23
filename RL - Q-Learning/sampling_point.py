@@ -181,10 +181,10 @@ def run_episode(env,agent, verbose = 1):
         
 
         # # Update our knowledge in the Q-table
-        agent.Update_Q_Table(s,a,reward,next_state)
+        # agent.Update_Q_Table(s,a,reward,next_state)
 
         # Update our knowledge in the Double Q-table
-        # agent.Update_Double_Q_Table(s,a,reward,next_state)
+        agent.Update_Double_Q_Table(s,a,reward,next_state)
 
         # # inverse distance 
         # # Add the distance of the taken action
@@ -218,11 +218,11 @@ class SamplingPointQAgent(QAgent):
     '''
     def act(self,s):
 
-        # Get Q Vector
-        q = np.copy(self.q_table[s,:])
+        # # Get Q Vector
+        # q = np.copy(self.q_table[s,:])
 
-        # # Get Q Vector from average of q_table1 and q_table2
-        # q = np.copy((self.q_table1[s,:] + self.q_table2[s,:]) / 2)
+        # Get Q Vector from average of q_table1 and q_table2
+        q = np.copy((self.q_table1[s,:] + self.q_table2[s,:]) / 2)
 
         # Avoid already visited states
         q[self.states_memory] = -np.inf

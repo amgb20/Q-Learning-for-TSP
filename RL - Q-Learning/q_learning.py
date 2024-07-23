@@ -57,28 +57,28 @@ class QAgent(Agent):
     #     self.N_sa[s, a] += 1  # increment the number of times we have visited state-action pair (s, a)
     #     self.steps_done += 1  # increment steps
     
-    # original exponential decay --> best so far
-    def Update_Q_Table(self, s, a, r, s_next):
-        self.q_table[s,a] += self.lr * (r + self.gamma * np.max(self.q_table[s_next,a]) - self.q_table[s,a]) # Bellman Equation
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
-        self.N_sa[s, a] += 1  # increment the number of times we have visited state-action pair (s, a)
+    # # original exponential decay --> best so far
+    # def Update_Q_Table(self, s, a, r, s_next):
+    #     self.q_table[s,a] += self.lr * (r + self.gamma * np.max(self.q_table[s_next,a]) - self.q_table[s,a]) # Bellman Equation
+    #     if self.epsilon > self.epsilon_min:
+    #         self.epsilon *= self.epsilon_decay
+    #     self.N_sa[s, a] += 1  # increment the number of times we have visited state-action pair (s, a)
     
     '''
     Double Q-Learning
     '''
-    # def Update_Double_Q_Table(self, s, a, r, s_next):
-    #     # With 0.5 probability update the first Q-Table, 
-    #     # otherwise update the second Q-Table
-    #     if np.random.rand() < 0.5:
-    #         a_next = np.argmax(self.q_table1[s_next, :])
-    #         self.q_table1[s, a] += self.lr * (r + self.gamma * self.q_table2[s_next, a_next] - self.q_table1[s, a])
-    #     else:
-    #         a_next = np.argmax(self.q_table2[s_next, :])
-    #         self.q_table2[s, a] += self.lr * (r + self.gamma * self.q_table1[s_next, a_next] - self.q_table2[s, a])
+    def Update_Double_Q_Table(self, s, a, r, s_next):
+        # With 0.5 probability update the first Q-Table, 
+        # otherwise update the second Q-Table
+        if np.random.rand() < 0.5:
+            a_next = np.argmax(self.q_table1[s_next, :])
+            self.q_table1[s, a] += self.lr * (r + self.gamma * self.q_table2[s_next, a_next] - self.q_table1[s, a])
+        else:
+            a_next = np.argmax(self.q_table2[s_next, :])
+            self.q_table2[s, a] += self.lr * (r + self.gamma * self.q_table1[s_next, a_next] - self.q_table2[s, a])
         
-    #     if self.epsilon > self.epsilon_min:
-    #         self.epsilon *= self.epsilon_decay
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
     # introducing the SARSA algorithm
 
